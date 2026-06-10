@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#FF4080">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ZIGZAG">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<title>ZIG·ZAG 가상 쇼핑</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif}
+:root{--pink:#FF4080;--gray-bg:#F7F7F7;--gray-border:#EBEBEB;--gray-text:#888;--dark:#1A1A1A;--white:#fff}
+html,body{height:100%;background:var(--gray-bg);overflow:hidden}
+#app{max-width:480px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;background:var(--gray-bg)}
+
+/* HEADER */
+.hdr{background:var(--white);padding:0 16px;border-bottom:1px solid var(--gray-border);flex-shrink:0;padding-top:env(safe-area-inset-top,0px)}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;height:52px}
+.logo{font-size:22px;font-weight:900;letter-spacing:-1px;color:var(--dark);font-style:italic}
+.logo span{color:var(--pink)}
+.hdr-icons{display:flex;gap:2px}
+.icon-btn{background:none;border:none;cursor:pointer;padding:8px;font-size:20px;position:relative}
+.badge{position:absolute;top:4px;right:4px;background:var(--pink);color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.tabs{display:flex;border-bottom:1px solid var(--gray-border)}
+.tab{flex:1;padding:10px 0;text-align:center;font-size:13px;font-weight:600;color:var(--gray-text);cursor:pointer;border-bottom:2px solid transparent}
+.tab.on{color:var(--dark);border-bottom:2px solid var(--dark)}
+
+/* PAGES */
+.pages{flex:1;overflow:hidden;position:relative}
+.pg{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+.pg.on{display:block}
+
+/* BANNER */
+.banner{background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);padding:28px 20px;position:relative;overflow:hidden}
+.banner::after{content:'✦';position:absolute;right:30px;top:20px;font-size:60px;color:rgba(255,64,128,.3)}
+.bn-badge{background:var(--pink);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;display:inline-block;margin-bottom:8px}
+.bn-title{color:#fff;font-size:22px;font-weight:800;line-height:1.3;margin-bottom:6px}
+.bn-sub{color:rgba(255,255,255,.6);font-size:13px}
+
+/* CAT */
+.sec-title{font-size:15px;font-weight:700;color:var(--dark);padding:16px 16px 10px}
+.cat-row{display:flex;gap:10px;padding:0 16px 14px;overflow-x:auto}
+.cat-row::-webkit-scrollbar{display:none}
+.chip{background:var(--white);border:1px solid var(--gray-border);border-radius:20px;padding:7px 14px;font-size:12px;font-weight:600;color:var(--dark);cursor:pointer;white-space:nowrap}
+.chip.on{background:var(--dark);color:#fff;border-color:var(--dark)}
+.cnt-bar{padding:6px 16px 0;font-size:12px;color:var(--gray-text)}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--gray-border);margin-top:8px}
+.card{background:var(--white);cursor:pointer;position:relative}
+.card-img{width:100%;aspect-ratio:3/4;overflow:hidden;background:#f0f0f0;position:relative;display:flex;align-items:center;justify-content:center}
+.card-img img{width:100%;height:100%;object-fit:cover;display:block}
+.card-like{position:absolute;top:8px;right:8px;background:#fff;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.12);cursor:pointer;font-size:15px;z-index:2;border:none}
+.card-del{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.55);border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:14px;z-index:2;opacity:0;transition:opacity .2s}
+.del-mode .card-del{opacity:1}
+.card-info{padding:8px 10px 12px}
+.card-brand{font-size:10px;color:var(--gray-text);font-weight:600;margin-bottom:2px}
+.card-name{font-size:12px;color:var(--dark);font-weight:500;line-height:1.4;margin-bottom:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.card-price{font-size:14px;font-weight:800;color:var(--dark)}
+
+/* EMPTY */
+.empty{text-align:center;padding:60px 20px}
+.empty-ico{font-size:48px;margin-bottom:12px}
+.empty-title{font-size:15px;font-weight:700;color:var(--dark);margin-bottom:6px}
+.empty-sub{font-size:13px;color:var(--gray-text);line-height:1.6}
+
+/* MODAL BASE */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:#fff;border-radius:20px 20px 0 0;padding:20px 20px 0;width:100%;max-width:480px;max-height:92dvh;overflow-y:auto;padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+.handle{width:36px;height:4px;background:var(--gray-border);border-radius:2px;margin:0 auto 16px}
+.sheet-title{font-size:17px;font-weight:800;margin-bottom:14px;color:var(--dark)}
+.lbl{font-size:12px;font-weight:700;color:var(--dark);display:block;margin-bottom:5px}
+.fld{width:100%;border:1.5px solid var(--gray-border);border-radius:10px;padding:11px 12px;font-size:14px;color:var(--dark);background:var(--gray-bg);margin-bottom:12px;outline:none;font-family:inherit;-webkit-appearance:none;appearance:none}
+.fld:focus{border-color:var(--pink);background:#fff}
+textarea.fld{height:72px;resize:none}
+
+/* IMAGE UPLOAD — label trick for mobile */
+.img-lbl{display:block;width:100%;aspect-ratio:4/3;background:var(--gray-bg);border:2px dashed var(--gray-border);border-radius:14px;overflow:hidden;position:relative;cursor:pointer;margin-bottom:12px}
+.img-lbl:active{opacity:.85}
+.img-lbl input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
+.up-hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;gap:6px}
+.up-hint .ico{font-size:40px}
+.up-hint p{font-size:14px;color:var(--gray-text);font-weight:600}
+.up-hint span{font-size:12px;color:#bbb}
+#main-prev{width:100%;height:100%;object-fit:cover;display:none;position:absolute;inset:0;pointer-events:none}
+.chg-btn{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;pointer-events:none;display:none}
+.has-img .chg-btn{display:block}
+.has-img .up-hint{display:none}
+.has-img{border-style:solid}
+.thumb-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px}
+.thumb-row::-webkit-scrollbar{display:none}
+.thumb{position:relative;flex-shrink:0}
+.thumb img{width:68px;height:68px;object-fit:cover;border-radius:8px;border:2px solid transparent;display:block}
+.thumb img.on{border-color:var(--pink)}
+.thumb-x{position:absolute;top:-4px;right:-4px;background:var(--dark);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.add-lbl{width:68px;height:68px;border:2px dashed var(--gray-border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;color:#ccc;flex-shrink:0;background:var(--gray-bg);position:relative;overflow:hidden}
+.add-lbl input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
+
+/* OPTIONS */
+.opts-box{background:var(--gray-bg);border-radius:12px;padding:14px;margin-bottom:12px}
+.opts-hdr{font-size:13px;font-weight:700;color:var(--dark);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.preset{padding:6px 12px;background:#fff;border:1px solid var(--gray-border);border-radius:20px;font-size:11px;font-weight:600;color:var(--gray-text);cursor:pointer}
+.og{background:#fff;border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid var(--gray-border)}
+.og-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.og-name{flex:1;border:1px solid var(--gray-border);border-radius:8px;padding:8px 10px;font-size:13px;font-weight:600;color:var(--dark);background:var(--gray-bg);outline:none;font-family:inherit}
+.og-name:focus{border-color:var(--pink);background:#fff}
+.og-del{background:none;border:none;cursor:pointer;color:#ccc;font-size:18px;padding:2px 4px}
+.ov-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.ov{display:flex;align-items:center;gap:4px;background:var(--gray-bg);border:1px solid var(--gray-border);border-radius:20px;padding:5px 10px;font-size:12px;font-weight:600;color:var(--dark)}
+.ov button{background:none;border:none;cursor:pointer;color:#aaa;font-size:13px}
+.ov-row{display:flex;gap:6px}
+.ov-inp{flex:1;border:1px solid var(--gray-border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--dark);background:var(--gray-bg);outline:none;font-family:inherit}
+.ov-inp:focus{border-color:var(--pink);background:#fff}
+.ov-add{padding:8px 14px;background:var(--dark);border:none;border-radius:8px;font-size:13px;font-weight:700;color:#fff;cursor:pointer}
+.add-og{width:100%;padding:10px;background:#fff;border:1.5px dashed var(--gray-border);border-radius:10px;font-size:13px;font-weight:700;color:var(--gray-text);cursor:pointer}
+.btn-row{display:flex;gap:10px;margin-top:8px}
+.btn-gray{flex:1;padding:14px;border:1.5px solid var(--gray-border);background:#fff;border-radius:12px;font-size:14px;font-weight:700;color:var(--gray-text);cursor:pointer}
+.btn-pink{flex:2;padding:14px;background:var(--pink);border:none;border-radius:12px;font-size:14px;font-weight:700;color:#fff;cursor:pointer}
+
+/* DETAIL */
+.dt-img{width:100%;aspect-ratio:1/1;background:#f0f0f0;position:relative;overflow:hidden}
+.dt-img img{width:100%;height:100%;object-fit:cover;display:block}
+.dots{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:5px}
+.dots span{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5);cursor:pointer}
+.dots span.on{background:#fff}
+.dt-body{background:#fff;padding:20px 16px}
+.dt-brand{font-size:12px;color:var(--gray-text);font-weight:700;letter-spacing:1px;margin-bottom:6px}
+.dt-name{font-size:18px;font-weight:800;color:var(--dark);line-height:1.3;margin-bottom:10px}
+.dt-price{font-size:24px;font-weight:900;color:var(--dark);margin-bottom:14px}
+/* DISCOUNT */
+.price-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.price-original{font-size:16px;color:#bbb;text-decoration:line-through;font-weight:500}
+.price-discounted{font-size:26px;font-weight:900;color:var(--pink)}
+.discount-badge{background:var(--pink);color:#fff;font-size:11px;font-weight:800;padding:4px 9px;border-radius:20px;letter-spacing:.3px}
+.discount-btn{width:100%;padding:14px;background:#fff;border:2px dashed var(--pink);border-radius:12px;font-size:14px;font-weight:800;color:var(--pink);cursor:pointer;margin-bottom:10px;transition:all .2s}
+.discount-btn:active{background:var(--pink);color:#fff}
+/* card discount badge */
+.card-disc-badge{position:absolute;bottom:8px;left:8px;background:var(--pink);color:#fff;font-size:10px;font-weight:800;padding:3px 7px;border-radius:10px;z-index:2}
+.card-price-orig{font-size:11px;color:#bbb;text-decoration:line-through;margin-bottom:1px}
+.card-price-disc{font-size:14px;font-weight:800;color:var(--pink)}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tag{font-size:10px;background:var(--gray-bg);border-radius:20px;padding:4px 10px;color:var(--gray-text);font-weight:600}
+.dt-desc{font-size:13px;color:var(--gray-text);line-height:1.7;padding:14px 0;border-top:1px solid var(--gray-bg)}
+.opt-sel{margin-bottom:14px}
+.opt-lbl{font-size:13px;font-weight:700;color:var(--dark);margin-bottom:8px}
+.opt-lbl .sv{color:var(--pink)}
+.opt-chips{display:flex;flex-wrap:wrap;gap:8px}
+.oc{padding:8px 16px;border:1.5px solid var(--gray-border);border-radius:20px;font-size:13px;font-weight:600;color:var(--dark);cursor:pointer;background:#fff}
+.oc.on{border-color:var(--dark);background:var(--dark);color:#fff}
+.back{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:12px;z-index:150;background:rgba(255,255,255,.92);border:none;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.add-bar{position:sticky;bottom:0;background:#fff;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--gray-bg)}
+.add-btn{width:100%;padding:15px;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer}
+
+/* CART */
+.cart-list{padding:12px 16px;display:flex;flex-direction:column;gap:10px}
+.ci{background:#fff;border-radius:14px;padding:14px;display:flex;gap:12px}
+.ci-img{width:80px;height:80px;border-radius:10px;background:var(--gray-bg);flex-shrink:0;overflow:hidden}
+.ci-img img{width:100%;height:100%;object-fit:cover;display:block}
+.ci-info{flex:1;min-width:0}
+.ci-brand{font-size:10px;color:var(--gray-text);font-weight:600;margin-bottom:2px}
+.ci-name{font-size:13px;color:var(--dark);font-weight:600;line-height:1.4;margin-bottom:2px}
+.ci-opts{font-size:11px;color:var(--gray-text);margin-bottom:6px}
+.ci-bot{display:flex;align-items:center;justify-content:space-between}
+.ci-price{font-size:15px;font-weight:800;color:var(--dark)}
+.qty{display:flex;align-items:center;gap:8px}
+.qty-btn{width:28px;height:28px;border:1.5px solid var(--gray-border);background:#fff;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.qty-n{font-size:14px;font-weight:700;min-width:22px;text-align:center}
+.ci-x{background:none;border:none;cursor:pointer;color:var(--gray-text);font-size:18px;padding:4px}
+.cart-sum{background:#fff;margin:0 16px 16px;border-radius:14px;padding:16px}
+.sum-row{display:flex;justify-content:space-between;font-size:14px;margin-bottom:10px}
+.sum-row.total{font-weight:800;font-size:16px;padding-top:10px;border-top:1px solid var(--gray-border);margin-top:4px}
+.sum-row.total span:last-child{color:var(--pink);font-size:18px}
+.co-bar{position:sticky;bottom:0;background:#fff;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--gray-border)}
+.co-btn{width:100%;padding:16px;background:var(--dark);border:none;border-radius:12px;font-size:16px;font-weight:800;color:#fff;cursor:pointer}
+
+/* PAY */
+.pay-wrap{padding:16px;display:flex;flex-direction:column;gap:12px}
+.pay-sec{background:#fff;border-radius:14px;padding:16px}
+.pay-title{font-size:13px;font-weight:800;color:var(--dark);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--gray-bg)}
+.pay-item{display:flex;justify-content:space-between;font-size:13px;padding:5px 0}
+.pay-item span:first-child{color:var(--gray-text)}
+.pay-item span:last-child{font-weight:600}
+.pay-methods{display:flex;gap:8px;margin-top:4px}
+.pm{flex:1;padding:11px;border:1.5px solid var(--gray-border);border-radius:10px;background:#fff;font-size:12px;font-weight:700;cursor:pointer}
+.pm.on{border-color:var(--dark);background:var(--dark);color:#fff}
+.addr{width:100%;border:1.5px solid var(--gray-border);border-radius:10px;padding:11px 12px;font-size:14px;background:var(--gray-bg);outline:none;font-family:inherit;margin-bottom:8px;color:var(--dark)}
+.addr:focus{border-color:var(--pink);background:#fff}
+.pay-btn{width:100%;padding:16px;background:var(--pink);border:none;border-radius:14px;font-size:16px;font-weight:800;color:#fff;cursor:pointer}
+
+/* SUCCESS */
+.ok-wrap{padding:40px 20px;text-align:center}
+.ok-box{background:var(--gray-bg);border-radius:14px;padding:16px;text-align:left;margin:20px 0 24px}
+.ok-row{display:flex;justify-content:space-between;font-size:14px;padding:5px 0}
+.ok-row .l{color:var(--gray-text)}
+.ok-row .v{font-weight:700}
+.ok-back{width:100%;padding:16px;background:var(--dark);border:none;border-radius:12px;font-size:15px;font-weight:800;color:#fff;cursor:pointer}
+
+/* DEL CONFIRM */
+.c-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;display:flex;align-items:center;justify-content:center}
+.c-box{background:#fff;border-radius:20px;padding:24px 20px;width:calc(100% - 40px);max-width:340px;text-align:center}
+.c-title{font-size:16px;font-weight:800;color:var(--dark);margin-bottom:8px}
+.c-sub{font-size:13px;color:var(--gray-text);margin-bottom:20px;line-height:1.5}
+.c-btns{display:flex;gap:10px}
+.c-btns button{flex:1;padding:13px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;border:none}
+.c-no{background:var(--gray-bg);color:var(--dark)}
+.c-yes{background:#e24b4a;color:#fff}
+
+/* INSTALL BANNER */
+.inst-bar{background:var(--dark);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.inst-txt{flex:1;font-size:12px;line-height:1.4}
+.inst-txt b{font-size:13px;display:block;margin-bottom:2px}
+.inst-btn{background:var(--pink);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.inst-x{background:none;border:none;color:rgba(255,255,255,.5);font-size:18px;cursor:pointer;padding:4px}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- INSTALL BANNER (Android Chrome) -->
+  <div id="inst-bar" class="inst-bar" style="display:none">
+    <div class="inst-txt"><b>📲 앱으로 설치하기</b>홈 화면에 추가하면 앱처럼 사용 가능해요</div>
+    <button class="inst-btn" id="inst-btn">설치</button>
+    <button class="inst-x" onclick="document.getElementById('inst-bar').style.display='none'">✕</button>
+  </div>
+
+  <div class="hdr">
+    <div class="hdr-top">
+      <div class="logo">Z<span>I</span>G·Z<span>A</span>G</div>
+      <div class="hdr-icons">
+        <button class="icon-btn" id="del-btn" onclick="toggleDel()">🗑</button>
+        <button class="icon-btn" onclick="showAdd()">＋</button>
+        <button class="icon-btn" onclick="goPg('cart')">🛒<span class="badge" id="badge" style="display:none">0</span></button>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab on" onclick="switchTab(this,'fashion')">패션</div>
+      <div class="tab" onclick="switchTab(this,'beauty')">뷰티</div>
+    </div>
+  </div>
+
+  <div class="pages">
+    <!-- HOME -->
+    <div class="pg on" id="pg-home">
+      <div class="banner">
+        <div class="bn-badge">MY CLOSET</div>
+        <div class="bn-title">나만의 스타일을<br>찾아보세요</div>
+        <div class="bn-sub">사진을 직접 올려 가상 쇼핑을 즐겨보세요</div>
+      </div>
+      <div class="sec-title">카테고리</div>
+      <div class="cat-row" id="cat-row"></div>
+      <div class="cnt-bar" id="cnt-bar"></div>
+      <div id="del-notice" style="display:none;padding:8px 16px;background:#fff3cd;font-size:12px;font-weight:600;color:#856404;text-align:center">🗑 삭제 모드 ON — 삭제할 상품을 탭하세요</div>
+      <div id="g" class="grid"></div>
+      <div id="empty" class="empty" style="display:none">
+        <div class="empty-ico">👗</div>
+        <div class="empty-title">아직 등록된 상품이 없어요</div>
+        <div class="empty-sub">＋ 버튼을 눌러 사진을 올리고<br>가상 쇼핑을 시작해보세요!</div>
+      </div>
+    </div>
+
+    <!-- DETAIL -->
+    <div class="pg" id="pg-detail">
+      <button class="back" onclick="goPg('home')">←</button>
+      <div id="dt"></div>
+    </div>
+
+    <!-- CART -->
+    <div class="pg" id="pg-cart">
+      <button class="back" onclick="goPg('home')">←</button>
+      <div style="padding:60px 16px 12px;font-size:17px;font-weight:800;color:var(--dark)">장바구니</div>
+      <div id="cart-list" class="cart-list"></div>
+      <div id="cart-sum" class="cart-sum"></div>
+      <div class="co-bar"><button class="co-btn" onclick="goCheckout()">결제하기</button></div>
+    </div>
+
+    <!-- PAYMENT -->
+    <div class="pg" id="pg-pay">
+      <button class="back" onclick="goPg('cart')">←</button>
+      <div style="padding:60px 16px 12px;font-size:17px;font-weight:800;color:var(--dark)">결제</div>
+      <div class="pay-wrap" id="pay-wrap"></div>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="pg" id="pg-ok">
+      <div class="ok-wrap" id="ok-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div id="add-overlay" class="overlay" style="display:none" onclick="closeBg(event,'add-overlay')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="handle"></div>
+    <div class="sheet-title">상품 등록</div>
+
+    <label class="lbl">상품 사진 <span style="color:var(--pink)">*</span></label>
+    <label class="img-lbl" id="img-lbl">
+      <input type="file" id="fi-main" accept="image/*" multiple onchange="handleFiles(this)">
+      <div class="up-hint">
+        <span class="ico">📷</span>
+        <p>여기를 눌러 사진 선택</p>
+        <span>갤러리에서 여러 장 선택 가능</span>
+      </div>
+      <img id="main-prev" src="" alt="">
+      <div class="chg-btn">사진 변경</div>
+    </label>
+    <div class="thumb-row" id="thumb-row" style="display:none"></div>
+
+    <label class="lbl">상품명 <span style="color:var(--pink)">*</span></label>
+    <input class="fld" type="text" id="m-name" placeholder="상품명을 입력하세요">
+    <label class="lbl">브랜드</label>
+    <input class="fld" type="text" id="m-brand" placeholder="브랜드명 (선택)">
+    <label class="lbl">가격 (원) <span style="color:var(--pink)">*</span></label>
+    <input class="fld" type="number" id="m-price" placeholder="예: 39000" inputmode="numeric">
+    <label class="lbl">카테고리</label>
+    <select class="fld" id="m-cat">
+      <option value="">카테고리 선택</option>
+      <optgroup label="패션">
+        <option>상의</option><option>하의</option><option>아우터</option>
+        <option>원피스</option><option>신발</option><option>가방</option><option>악세서리</option>
+      </optgroup>
+      <optgroup label="뷰티">
+        <option>스킨케어</option><option>메이크업</option><option>클렌징</option>
+        <option>헤어</option><option>바디</option><option>향수</option>
+      </optgroup>
+    </select>
+    <label class="lbl">상품 설명</label>
+    <textarea class="fld" id="m-desc" placeholder="상품 상세 설명 (선택)"></textarea>
+
+    <div class="opts-box">
+      <div class="opts-hdr"><span>옵션 설정</span><span style="font-size:11px;font-weight:400;color:var(--gray-text)">선택 사항</span></div>
+      <div style="font-size:11px;color:var(--gray-text);margin-bottom:8px">자주 쓰는 옵션 빠르게 추가:</div>
+      <div class="presets">
+        <div class="preset" onclick="addPreset('사이즈','XS,S,M,L,XL,XXL')">＋ 사이즈(의류)</div>
+        <div class="preset" onclick="addPreset('신발 사이즈','220,225,230,235,240,245,250,255,260,265,270')">＋ 사이즈(신발)</div>
+        <div class="preset" onclick="addPreset('색상','블랙,화이트,그레이,네이비,베이지,핑크,레드')">＋ 색상</div>
+        <div class="preset" onclick="addPreset('수량','1,2,3,4,5')">＋ 수량</div>
+      </div>
+      <div id="ogs"></div>
+      <button class="add-og" onclick="addOG()">＋ 옵션 그룹 직접 추가</button>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-gray" onclick="hideAdd()">취소</button>
+      <button class="btn-pink" onclick="addProduct()">등록하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEL CONFIRM -->
+<div id="del-overlay" class="c-overlay" style="display:none" onclick="closeBg(event,'del-overlay')">
+  <div class="c-box" onclick="event.stopPropagation()">
+    <div class="c-title">상품을 삭제할까요?</div>
+    <div class="c-sub" id="c-sub">삭제하면 복구할 수 없어요.</div>
+    <div class="c-btns">
+      <button class="c-no" onclick="hideDel()">취소</button>
+      <button class="c-yes" onclick="doDelete()">삭제</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let P=[], C=[], L={};
+let tab='fashion', cat='전체', payM='신용카드';
+let mImgs=[], mIdx=0, OGs=[];
+let delMode=false, delId=null;
+let dtIdx={}, dtOpts={};
+let dtDisc={};
+
+// ── DISCOUNT HELPERS ──
+function randDisc(){
+  const steps=[10,15,20,25,30,35,40,45,50];
+  return steps[Math.floor(Math.random()*steps.length)];
+}
+function applyDisc(price,rate){
+  return Math.floor(price*(1-rate/100)/10)*10;
+}
+const CF=['전체','상의','하의','아우터','원피스','신발','가방','악세서리'];
+const CB=['전체','스킨케어','메이크업','클렌징','헤어','바디','향수'];
+const BC=['스킨케어','메이크업','클렌징','헤어','바디','향수'];
+
+// ── INDEXEDDB 저장소 ──
+// 이미지(base64)는 용량이 커서 localStorage(5MB 한도)에 저장하면
+// 상품 6~7개 이상에서 꽉 차버림. IndexedDB는 수백MB 이상 사용 가능.
+const DB_NAME='zigzag_db', DB_VER=1;
+let db=null;
+
+function openDB(){
+  return new Promise((res,rej)=>{
+    const req=indexedDB.open(DB_NAME,DB_VER);
+    req.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains('products')) d.createObjectStore('products',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('cart'))     d.createObjectStore('cart',    {keyPath:'_k'});
+      if(!d.objectStoreNames.contains('meta'))     d.createObjectStore('meta',    {keyPath:'key'});
+    };
+    req.onsuccess=e=>{db=e.target.result;res(db)};
+    req.onerror=e=>rej(e);
+  });
+}
+
+function idbGetAll(store){
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(store,'readonly');
+    const req=tx.objectStore(store).getAll();
+    req.onsuccess=e=>res(e.target.result);
+    req.onerror=e=>rej(e);
+  });
+}
+function idbPut(store,val){
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(store,'readwrite');
+    const req=tx.objectStore(store).put(val);
+    req.onsuccess=()=>res();
+    req.onerror=e=>rej(e);
+  });
+}
+function idbDelete(store,key){
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(store,'readwrite');
+    const req=tx.objectStore(store).delete(key);
+    req.onsuccess=()=>res();
+    req.onerror=e=>rej(e);
+  });
+}
+function idbClear(store){
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(store,'readwrite');
+    const req=tx.objectStore(store).clear();
+    req.onsuccess=()=>res();
+    req.onerror=e=>rej(e);
+  });
+}
+
+// localStorage에는 liked(L)만 저장 — 이건 작아서 OK
+function svL(){ try{localStorage.setItem('zz_l',JSON.stringify(L))}catch(e){} }
+
+// 상품 저장: 상품 1개씩 개별 upsert → 용량 제한 없음
+async function svProduct(p){ await idbPut('products', p); }
+async function delProduct(id){ await idbDelete('products', id); }
+
+// 장바구니 전체 동기화
+async function svCart(){
+  await idbClear('cart');
+  for(const c of C) await idbPut('cart', c);
+}
+
+// 구버전 localStorage 데이터 마이그레이션 (최초 1회)
+async function migrateLegacy(){
+  try{
+    const oldP=localStorage.getItem('zz_p');
+    const oldC=localStorage.getItem('zz_c');
+    if(oldP){
+      const arr=JSON.parse(oldP);
+      for(const p of arr) await idbPut('products',p);
+      localStorage.removeItem('zz_p');
+    }
+    if(oldC){
+      const arr=JSON.parse(oldC);
+      for(const c of arr) await idbPut('cart',c);
+      localStorage.removeItem('zz_c');
+    }
+  }catch(e){}
+}
+
+// ── FILE UPLOAD ──
+function handleFiles(el){
+  const files=Array.from(el.files); if(!files.length) return;
+  let n=0;
+  files.forEach(f=>{
+    const r=new FileReader();
+    r.onload=e=>{mImgs.push(e.target.result); if(++n===files.length) renderImgs()};
+    r.readAsDataURL(f);
+  });
+  el.value='';
+}
+function renderImgs(){
+  const lbl=document.getElementById('img-lbl');
+  const prev=document.getElementById('main-prev');
+  const tr=document.getElementById('thumb-row');
+  if(!mImgs.length){lbl.classList.remove('has-img');prev.style.display='none';tr.style.display='none';return}
+  lbl.classList.add('has-img');
+  prev.src=mImgs[mIdx]; prev.style.display='block';
+  if(mImgs.length>1){
+    tr.style.display='flex';
+    tr.innerHTML=mImgs.map((s,i)=>
+      `<div class="thumb"><img src="${s}" class="${i===mIdx?'on':''}" onclick="setMIdx(${i})"><button class="thumb-x" onclick="rmImg(${i})">✕</button></div>`
+    ).join('')+`<label class="add-lbl"><input type="file" accept="image/*" multiple onchange="handleFiles(this)">＋</label>`;
+  } else tr.style.display='none';
+}
+function setMIdx(i){mIdx=i;renderImgs()}
+function rmImg(i){mImgs.splice(i,1);mIdx=Math.max(0,Math.min(mIdx,mImgs.length-1));renderImgs()}
+
+// ── OPTION GROUPS ──
+function renderOGs(){
+  document.getElementById('ogs').innerHTML=OGs.map((g,gi)=>`
+    <div class="og">
+      <div class="og-hdr">
+        <input class="og-name" value="${g.n}" placeholder="옵션명 (예: 사이즈)" oninput="OGs[${gi}].n=this.value">
+        <button class="og-del" onclick="OGs.splice(${gi},1);renderOGs()">✕</button>
+      </div>
+      <div class="ov-wrap">${g.v.map((v,vi)=>`<span class="ov">${v}<button onclick="OGs[${gi}].v.splice(${vi},1);renderOGs()">×</button></span>`).join('')}</div>
+      <div class="ov-row">
+        <input class="ov-inp" id="oi-${gi}" placeholder="값 입력 후 추가" onkeydown="if(event.key==='Enter'){addOV(${gi});event.preventDefault()}">
+        <button class="ov-add" onclick="addOV(${gi})">추가</button>
+      </div>
+    </div>`).join('');
+}
+function addOG(n='',v=[]){OGs.push({n,v});renderOGs()}
+function addOV(gi){
+  const el=document.getElementById('oi-'+gi); const v=el.value.trim(); if(!v) return;
+  if(!OGs[gi].v.includes(v)) OGs[gi].v.push(v);
+  el.value=''; renderOGs();
+}
+function addPreset(n,csv){
+  const vs=csv.split(',').map(x=>x.trim());
+  const ex=OGs.find(g=>g.n===n);
+  if(ex) ex.v=[...new Set([...ex.v,...vs])]; else addOG(n,vs);
+  renderOGs();
+}
+
+// ── ADD MODAL ──
+function showAdd(){
+  mImgs=[];mIdx=0;OGs=[];
+  ['m-name','m-brand','m-price','m-desc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('m-cat').value='';
+  renderImgs();renderOGs();
+  document.getElementById('add-overlay').style.display='flex';
+}
+function hideAdd(){document.getElementById('add-overlay').style.display='none'}
+function closeBg(e,id){if(e.target===document.getElementById(id)) document.getElementById(id).style.display='none'}
+
+function addProduct(){
+  const name=document.getElementById('m-name').value.trim();
+  const price=document.getElementById('m-price').value.trim();
+  if(!name||!price){alert('상품명과 가격은 필수입니다.');return}
+  if(!mImgs.length){alert('상품 사진을 최소 1장 선택해주세요.');return}
+  const c=document.getElementById('m-cat').value;
+  const p={
+    id:Date.now()+Math.random(), name,
+    brand:document.getElementById('m-brand').value.trim(),
+    price:Number(price), cat:c, desc:document.getElementById('m-desc').value.trim(),
+    tab:BC.includes(c)?'beauty':'fashion', imgs:[...mImgs],
+    opts:OGs.filter(g=>g.n&&g.v.length).map(g=>({n:g.n,v:[...g.v]}))
+  };
+  // 등록 버튼 비활성화 (중복 클릭 방지)
+  const regBtn=document.querySelector('#add-overlay .btn-pink');
+  if(regBtn){regBtn.disabled=true;regBtn.textContent='저장 중...';}
+  svProduct(p).then(()=>{
+    P.push(p);
+    hideAdd();renderCats();renderGrid();
+  }).catch(()=>{
+    alert('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+    if(regBtn){regBtn.disabled=false;regBtn.textContent='등록하기';}
+  });
+}
+
+// ── DELETE ──
+function toggleDel(){
+  delMode=!delMode;
+  document.getElementById('del-btn').style.color=delMode?'#e24b4a':'';
+  document.getElementById('del-notice').style.display=delMode?'block':'none';
+  const g=document.getElementById('g');
+  if(delMode) g.classList.add('del-mode'); else g.classList.remove('del-mode');
+}
+function askDel(id,name){
+  delId=id;
+  document.getElementById('c-sub').textContent='"'+name+'" 을(를) 삭제하면 복구할 수 없어요.';
+  document.getElementById('del-overlay').style.display='flex';
+}
+function hideDel(){document.getElementById('del-overlay').style.display='none';delId=null}
+function doDelete(){
+  if(!delId) return;
+  delProduct(delId).then(()=>{
+    P=P.filter(p=>String(p.id)!==String(delId));
+    C=C.filter(c=>String(c.id)!==String(delId));
+    updBadge();svCart();hideDel();renderCats();renderGrid();
+  });
+}
+
+// ── NAV ──
+function init(){renderCats();renderGrid()}
+function switchTab(el,t){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');tab=t;cat='전체';renderCats();renderGrid();
+}
+function renderCats(){
+  const cats=tab==='fashion'?CF:CB;
+  document.getElementById('cat-row').innerHTML=cats.map(c=>
+    `<div class="chip${c===cat?' on':''}" onclick="setCat(this,'${c}')">${c}</div>`
+  ).join('');
+}
+function setCat(el,c){
+  document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');cat=c;renderGrid();
+}
+function renderGrid(){
+  const g=document.getElementById('g'),em=document.getElementById('empty'),bar=document.getElementById('cnt-bar');
+  let fl=P.filter(p=>p.tab===tab);
+  if(cat!=='전체') fl=fl.filter(p=>p.cat===cat);
+  bar.textContent=fl.length?'총 '+fl.length+'개 상품':'';
+  if(!fl.length){g.style.display='none';g.innerHTML='';em.style.display='block';return}
+  g.style.display='grid';em.style.display='none';
+  g.innerHTML=fl.map(p=>{
+    const disc=dtDisc[p.id];
+    const discPrice=disc?applyDisc(p.price,disc):null;
+    const priceHtml=disc
+      ?`<div class="card-price-orig">${Number(p.price).toLocaleString()}원</div>
+         <div class="card-price-disc">${discPrice.toLocaleString()}원</div>`
+      :`<div class="card-price">${Number(p.price).toLocaleString()}원</div>`;
+    const discBadge=disc?`<div class="card-disc-badge">${disc}% OFF</div>`:'';
+    return `
+    <div class="card" onclick="onCard('${p.id}',event)">
+      <div class="card-img">
+        <img src="${p.imgs[0]}" alt="${p.name}" loading="lazy">
+        <button class="card-del" onclick="event.stopPropagation();askDel('${p.id}','${p.name.replace(/'/g,"&#39;")}')">🗑</button>
+        <button class="card-like" onclick="event.stopPropagation();toggleLike('${p.id}')">${L[p.id]?'❤️':'🤍'}</button>
+        ${discBadge}
+      </div>
+      <div class="card-info">
+        <div class="card-brand">${p.brand||'브랜드'}</div>
+        <div class="card-name">${p.name}</div>
+        ${priceHtml}
+      </div>
+    </div>`;
+  }).join('');
+  if(delMode) g.classList.add('del-mode');
+}
+function onCard(id,e){
+  if(delMode){const p=P.find(x=>String(x.id)===String(id));if(p)askDel(id,p.name);return}
+  openDt(id);
+}
+function toggleLike(id){L[id]=!L[id];svL();renderGrid()}
+
+// ── DETAIL ──
+function openDt(id){
+  const p=P.find(x=>String(x.id)===String(id)); if(!p) return;
+  dtIdx[id]=0;dtOpts[id]={};
+  // 기존 할인은 유지 (이미 받은 할인은 상세 재진입 시에도 표시)
+  renderDt(p);goPg('detail');
+}
+function renderDt(p){
+  const id=p.id,ii=dtIdx[id]||0,so=dtOpts[id]||{};
+  const disc=dtDisc[id]||0;
+  const discPrice=disc?applyDisc(p.price,disc):null;
+  const inC=!!C.find(c=>String(c.id)===String(id)&&JSON.stringify(c.so||{})===JSON.stringify(so));
+  const dots=p.imgs.length>1?`<div class="dots">${p.imgs.map((_,i)=>`<span class="${i===ii?'on':''}" onclick="slideDt('${id}',${i})"></span>`).join('')}</div>`:'';
+  const oh=p.opts&&p.opts.length?p.opts.map(o=>{
+    const s=so[o.n]||'';
+    return `<div class="opt-sel"><div class="opt-lbl">${o.n}${s?` <span class="sv">: ${s}</span>`:' <span style="color:#ccc;font-size:11px">선택하세요</span>'}</div><div class="opt-chips">${o.v.map(v=>`<div class="oc${s===v?' on':''}" onclick="selOpt('${id}','${o.n.replace(/'/g,"&#39;")}','${v.replace(/'/g,"&#39;")}')">${v}</div>`).join('')}</div></div>`;
+  }).join(''):'';
+  const allS=!p.opts||!p.opts.length||p.opts.every(o=>so[o.n]);
+  const dis=p.opts&&p.opts.length&&!allS;
+
+  // 가격 표시: 할인 적용 여부에 따라 분기
+  const priceHtml=disc
+    ?`<div class="price-row">
+        <span class="price-original">${Number(p.price).toLocaleString()}원</span>
+        <span class="price-discounted">${discPrice.toLocaleString()}원</span>
+        <span class="discount-badge">${disc}% OFF</span>
+      </div>`
+    :`<div class="dt-price">${Number(p.price).toLocaleString()}원</div>`;
+
+  // 할인 버튼: 아직 할인 미적용이면 표시, 적용됐으면 숨김
+  const discBtnHtml=disc
+    ?''
+    :`<button class="discount-btn" onclick="doDisc('${id}')">🎰 랜덤 할인 받기</button>`;
+
+  const cartPrice=disc?discPrice:p.price;
+  const bg=inC?'#eee':dis?'#f0f0f0':'var(--dark)';
+  const fc=(inC||dis)?'var(--gray-text)':'#fff';
+  const lbl=inC?'✓ 장바구니에 담김':dis?'옵션을 선택해주세요':'장바구니에 담기';
+
+  document.getElementById('dt').innerHTML=`
+    <div class="dt-img"><img src="${p.imgs[ii]}" alt="${p.name}">${dots}</div>
+    <div class="dt-body">
+      <div class="dt-brand">${p.brand||'브랜드'}</div>
+      <div class="dt-name">${p.name}</div>
+      ${priceHtml}
+      <div class="tags">
+        ${p.cat?`<span class="tag">${p.cat}</span>`:''}
+        <span class="tag">${p.tab==='fashion'?'패션':'뷰티'}</span>
+        ${p.imgs.length>1?`<span class="tag">사진 ${p.imgs.length}장</span>`:''}
+        ${p.opts&&p.opts.length?`<span class="tag">옵션 ${p.opts.length}개</span>`:''}
+      </div>
+      ${oh}
+      ${discBtnHtml}
+      <div class="dt-desc">${p.desc||'상품 설명이 없습니다.'}</div>
+    </div>
+    <div class="add-bar">
+      <button class="add-btn" onclick="addCart('${id}',${cartPrice})" style="background:${bg};color:${fc};cursor:${dis?'default':'pointer'}">${lbl}</button>
+    </div>`;
+}
+
+// ── DISCOUNT APPLY ──
+function doDisc(id){
+  const p=P.find(x=>String(x.id)===String(id)); if(!p) return;
+  // 슬롯머신 애니메이션 효과
+  const btn=document.querySelector('.discount-btn');
+  if(btn){
+    btn.textContent='🎰 뽑는 중...';
+    btn.style.pointerEvents='none';
+  }
+  let count=0;
+  const steps=[10,15,20,25,30,35,40,45,50];
+  const ticker=setInterval(()=>{
+    const tmp=steps[Math.floor(Math.random()*steps.length)];
+    if(btn) btn.textContent=`🎰 ${tmp}% ...`;
+    count++;
+    if(count>=12){
+      clearInterval(ticker);
+      const final=randDisc();
+      dtDisc[id]=final;
+      renderDt(p);
+      renderGrid(); // 카드에도 반영
+    }
+  },80);
+}
+function slideDt(id,i){dtIdx[id]=i;const p=P.find(x=>String(x.id)===String(id));if(p)renderDt(p)}
+function selOpt(id,n,v){if(!dtOpts[id])dtOpts[id]={};dtOpts[id][n]=v;const p=P.find(x=>String(x.id)===String(id));if(p)renderDt(p)}
+function addCart(id, overridePrice){
+  const p=P.find(x=>String(x.id)===String(id));if(!p) return;
+  const so=dtOpts[id]||{};
+  if(p.opts&&p.opts.length&&!p.opts.every(o=>so[o.n])) return;
+  const finalPrice=overridePrice!==undefined?overridePrice:p.price;
+  const disc=dtDisc[id]||0;
+  const k=id+'|'+JSON.stringify(so);
+  const ex=C.find(c=>c._k===k);
+  if(ex){ex.qty++;}
+  else{C.push({...p, price:finalPrice, origPrice:p.price, discRate:disc, qty:1, so:{...so}, _k:k});}
+  svCart();updBadge();renderDt(p);
+}
+function updBadge(){
+  const b=document.getElementById('badge'),n=C.reduce((s,c)=>s+c.qty,0);
+  b.style.display=n>0?'flex':'none';b.textContent=n;
+}
+function goPg(name){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.getElementById('pg-'+name).classList.add('on');
+  if(name==='cart') renderCart();
+  if(name==='home'){renderCats();renderGrid()}
+}
+
+// ── CART ──
+function renderCart(){
+  const list=document.getElementById('cart-list'),sum=document.getElementById('cart-sum');
+  if(!C.length){
+    list.innerHTML='<div class="empty" style="padding-top:60px"><div class="empty-ico">🛒</div><div class="empty-title">장바구니가 비어있어요</div><div class="empty-sub">마음에 드는 상품을 담아보세요!</div></div>';
+    sum.innerHTML='';return;
+  }
+  list.innerHTML=C.map(c=>{
+    const opts=c.so&&Object.keys(c.so).length?Object.entries(c.so).map(([k,v])=>k+': '+v).join(' / '):'';
+    const discHtml=c.discRate
+      ?`<div style="font-size:10px;color:var(--pink);font-weight:700;margin-bottom:2px">${c.discRate}% 할인 적용 <span style="color:#bbb;text-decoration:line-through;font-weight:400">${Number(c.origPrice).toLocaleString()}원</span></div>`
+      :'';
+    return `<div class="ci">
+      <div class="ci-img"><img src="${c.imgs[0]}" alt="${c.name}"></div>
+      <div class="ci-info">
+        <div class="ci-brand">${c.brand||'브랜드'}</div>
+        <div class="ci-name">${c.name}</div>
+        ${discHtml}
+        ${opts?`<div class="ci-opts">${opts}</div>`:''}
+        <div class="ci-bot">
+          <div class="ci-price">${(Number(c.price)*c.qty).toLocaleString()}원</div>
+          <div class="qty">
+            <button class="qty-btn" onclick="chgQty('${c._k}',-1)">−</button>
+            <span class="qty-n">${c.qty}</span>
+            <button class="qty-btn" onclick="chgQty('${c._k}',1)">+</button>
+          </div>
+        </div>
+      </div>
+      <button class="ci-x" onclick="rmCart('${c._k}')">✕</button>
+    </div>`;
+  }).join('');
+  const sub=C.reduce((s,c)=>s+Number(c.price)*c.qty,0);
+  const origSub=C.reduce((s,c)=>s+Number(c.origPrice||c.price)*c.qty,0);
+  const totalDisc=origSub-sub;
+  const ship=sub>=50000?0:3000;
+  sum.innerHTML=`
+    <div class="sum-row"><span>상품 금액</span><span>${origSub.toLocaleString()}원</span></div>
+    ${totalDisc>0?`<div class="sum-row"><span style="color:var(--pink);font-weight:700">할인 금액</span><span style="color:var(--pink);font-weight:700">-${totalDisc.toLocaleString()}원</span></div>`:''}
+    <div class="sum-row"><span>배송비</span><span>${ship===0?'무료':ship.toLocaleString()+'원'}</span></div>
+    <div class="sum-row total"><span>총 결제금액</span><span>${(sub+ship).toLocaleString()}원</span></div>`;
+}
+function chgQty(k,d){const i=C.findIndex(c=>c._k===k);if(i<0)return;C[i].qty=Math.max(1,C[i].qty+d);svCart();updBadge();renderCart()}
+function rmCart(k){C=C.filter(c=>c._k!==k);svCart();updBadge();renderCart()}
+
+// ── PAYMENT ──
+function goCheckout(){
+  if(!C.length) return;
+  const sub=C.reduce((s,c)=>s+Number(c.price)*c.qty,0);
+  const origSub=C.reduce((s,c)=>s+Number(c.origPrice||c.price)*c.qty,0);
+  const totalDisc=origSub-sub;
+  const ship=sub>=50000?0:3000;
+  document.getElementById('pay-wrap').innerHTML=`
+    <div class="pay-sec">
+      <div class="pay-title">배송지 정보</div>
+      <input class="addr" id="p-name" placeholder="받는 분 이름">
+      <input class="addr" id="p-phone" placeholder="연락처 (010-0000-0000)" inputmode="tel">
+      <input class="addr" id="p-addr" placeholder="주소를 입력하세요">
+    </div>
+    <div class="pay-sec">
+      <div class="pay-title">결제 수단</div>
+      <div class="pay-methods">
+        <button class="pm on" onclick="selPay(this,'신용카드')">신용카드</button>
+        <button class="pm" onclick="selPay(this,'카카오페이')">카카오페이</button>
+        <button class="pm" onclick="selPay(this,'네이버페이')">네이버페이</button>
+      </div>
+    </div>
+    <div class="pay-sec">
+      <div class="pay-title">주문 상품 (${C.length}개)</div>
+      ${C.map(c=>{
+        const o=c.so&&Object.keys(c.so).length?' ('+Object.values(c.so).join('/')+')'  :'';
+        const discLabel=c.discRate?` <span style="color:var(--pink);font-size:10px">${c.discRate}%↓</span>`:'';
+        return `<div class="pay-item"><span>${c.name.length>12?c.name.slice(0,12)+'…':c.name}${o}${discLabel} ×${c.qty}</span><span>${(Number(c.price)*c.qty).toLocaleString()}원</span></div>`;
+      }).join('')}
+      ${totalDisc>0?`<div class="pay-item"><span style="color:var(--pink);font-weight:700">할인 합계</span><span style="color:var(--pink);font-weight:700">-${totalDisc.toLocaleString()}원</span></div>`:''}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;margin-top:8px;border-top:1px dashed var(--gray-border)">
+        <span style="font-size:14px;font-weight:800">최종 결제금액</span>
+        <span style="font-size:20px;font-weight:900;color:var(--pink)">${(sub+ship).toLocaleString()}원</span>
+      </div>
+    </div>
+    <button class="pay-btn" onclick="doPay(${sub+ship})">${(sub+ship).toLocaleString()}원 결제하기</button>`;
+  goPg('pay');
+}
+function selPay(el,m){document.querySelectorAll('.pm').forEach(b=>b.classList.remove('on'));el.classList.add('on');payM=m}
+function doPay(total){
+  const id='ZZ'+Date.now().toString().slice(-8);
+  const savedAmt=C.reduce((s,c)=>s+Number(c.origPrice||c.price)*c.qty,0)-C.reduce((s,c)=>s+Number(c.price)*c.qty,0);
+  const savedHtml=savedAmt>0?`<div class="ok-row"><span class="l">💸 할인 절약</span><span class="v" style="color:var(--pink)">-${savedAmt.toLocaleString()}원</span></div>`:'';
+  document.getElementById('ok-wrap').innerHTML=`
+    <div style="font-size:64px;margin-bottom:20px">🎉</div>
+    <div style="font-size:22px;font-weight:900;color:var(--dark);margin-bottom:8px">결제 완료!</div>
+    <div style="font-size:14px;color:var(--gray-text);line-height:1.6;margin-bottom:32px">주문이 정상 접수되었습니다.<br><span style="color:var(--pink);font-weight:700">가상 쇼핑 — 실제 결제 없음</span></div>
+    <div class="ok-box">
+      <div class="ok-row"><span class="l">주문 번호</span><span class="v">${id}</span></div>
+      <div class="ok-row"><span class="l">결제 수단</span><span class="v">${payM}</span></div>
+      <div class="ok-row"><span class="l">결제 금액</span><span class="v" style="color:var(--pink)">${total.toLocaleString()}원</span></div>
+      ${savedHtml}
+      <div class="ok-row"><span class="l">상품 수</span><span class="v">${C.length}개</span></div>
+    </div>
+    <button class="ok-back" onclick="afterPay()">쇼핑 계속하기</button>`;
+  C=[];svCart();updBadge();goPg('ok');
+}
+function afterPay(){cat='전체';goPg('home')}
+
+// ── PWA ──
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+let dPr=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();dPr=e;
+  document.getElementById('inst-bar').style.display='flex';
+});
+document.getElementById('inst-btn').addEventListener('click',async()=>{
+  if(!dPr) return;
+  dPr.prompt();
+  const{outcome}=await dPr.userChoice;
+  if(outcome==='accepted') document.getElementById('inst-bar').style.display='none';
+  dPr=null;
+});
+window.addEventListener('appinstalled',()=>{
+  document.getElementById('inst-bar').style.display='none';
+});
+
+// ── 앱 시작: IndexedDB 열고 데이터 로드 ──
+(async()=>{
+  // 로딩 표시
+  document.getElementById('g').innerHTML=
+    '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:#bbb;font-size:13px">불러오는 중...</div>';
+  try{
+    await openDB();
+    await migrateLegacy();   // 구버전 localStorage 데이터 자동 이전
+    P = await idbGetAll('products');
+    C = await idbGetAll('cart');
+    try{L=JSON.parse(localStorage.getItem('zz_l')||'{}')}catch(e){}
+  }catch(e){
+    console.error('DB 오류:',e);
+  }
+  updBadge();
+  init();
+})();
+</script>
+</body>
+</html>
